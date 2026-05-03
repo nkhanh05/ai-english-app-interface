@@ -1,0 +1,167 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../classes/self-defined_classes.dart'; // Đảm bảo bạn đã có class Word
+
+const String url = "https://referral-poison-writer-metallica.trycloudflare.com";
+String baseUrl = url.trim();
+
+class ApiService {
+  // Thay 10.0.2.2 bằng IP máy của bạn nếu chạy máy ảo Android
+
+  static Future<List<Word>> getWords(int userID) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/user_words/$userID'));
+
+      if (response.statusCode == 200) {
+        List<dynamic> body = jsonDecode(response.body);
+        return body.map((dynamic item) => Word.fromJson(item)).toList();
+      } else {
+        throw Exception("Không thể tải danh sách từ vựng");
+      }
+    } catch (e) {
+      throw Exception("Lỗi kết nối: $e");
+    }
+  }
+
+  static Future<List<Student>> getFriends(int userID) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/friends/$userID'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Student.fromJson(json)).toList();
+      } else {
+        throw Exception('Lỗi khi lấy danh sách bạn bè');
+      }
+    } catch (e) {
+      print('Lỗi getFriends: $e');
+      return [];
+    }
+  }
+
+  // 2. Lấy danh sách tất cả mọi người (Cần thêm API /people trên Node.js)
+  static Future<List<Student>> getPeople() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/people'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Student.fromJson(json)).toList();
+      } else {
+        throw Exception('Lỗi khi lấy danh sách mọi người');
+      }
+    } catch (e) {
+      print('Lỗi getPeople: $e');
+      return [];
+    }
+  }
+
+  // 3. Lấy danh sách người đang theo dõi mình (Followers)
+  static Future<List<Student>> getMyFollowers(int userID) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/followers/$userID'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Student.fromJson(json)).toList();
+      } else {
+        throw Exception('Lỗi khi lấy danh sách Followers');
+      }
+    } catch (e) {
+      print('Lỗi getMyFollowers: $e');
+      return [];
+    }
+  }
+
+  // 4. Lấy danh sách người mình đang theo dõi (Following)
+  static Future<List<Student>> getPeopleIFollow(int userID) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/following/$userID'));
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Student.fromJson(json)).toList();
+      } else {
+        throw Exception('Lỗi khi lấy danh sách Following');
+      }
+    } catch (e) {
+      print('Lỗi getPeopleIFollow: $e');
+      return [];
+    }
+  }
+
+  static Future<void> addUserWord(Word w, int userID) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/insert/user_word'),
+        // BẮT BUỘC PHẢI CÓ HEADERS NÀY ĐỂ NODEJS HIỂU ĐÂY LÀ DỮ LIỆU JSON
+        headers: {"Content-Type": "application/json"},
+        // Đóng gói dữ liệu thành chuỗi JSON trước khi gửi
+        body: jsonEncode({
+          "userID": userID,
+          "wordID": w.wordID,
+          "photoUrl": w.photoUrl,
+        }),
+      );
+
+      // Kiểm tra kết quả Node.js trả về (Bạn thiết lập mã 201 là thành công)
+      if (response.statusCode == 201) {
+        debugPrint("Chèn dữ liệu thành công!");
+        return;
+      } else {
+        debugPrint("Thất bại. Mã lỗi: ${response.statusCode}");
+        debugPrint("Chi tiết: ${response.body}");
+      }
+    } catch (e) {
+      debugPrint("Lỗi kết nối máy chủ: $e");
+    }
+  }
+
+  static Future<void> addWordToLibrary(Word w, int userID) async {
+    try {
+      final checkResponse = await http.post(
+        Uri.parse('$baseUrl/check/word/'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"term": w.term, "definition": w.definition}),
+      );
+
+      if (checkResponse.statusCode == 404) {
+        // Từ chưa tồn tại → Insert vào bảng Word
+        final insertResponse = await http.post(
+          Uri.parse('$baseUrl/insert/word/'),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({"term": w.term, "definition": w.definition}),
+        );
+
+        if (insertResponse.statusCode == 201) {
+          // Sau khi insert, check lại để lấy WordID
+          final checkAgainResponse = await http.post(
+            Uri.parse('$baseUrl/check/word/'),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({"term": w.term, "definition": w.definition}),
+          );
+
+          if (checkAgainResponse.statusCode == 200) {
+            final decodedData = jsonDecode(checkAgainResponse.body);
+            debugPrint("Từ đã được thêm vào bảng Word");
+            w.wordID = decodedData['data']['wordID'];
+
+            await addUserWord(w, userID); // Nên await nếu hàm này async
+          } else {
+            debugPrint("Không lấy được WordID sau khi insert");
+          }
+        } else {
+          debugPrint("Insert từ thất bại: ${insertResponse.statusCode}");
+        }
+      } else if (checkResponse.statusCode == 200) {
+        final decodedData = jsonDecode(checkResponse.body);
+        debugPrint("Từ đã có trong bảng Word");
+        w.wordID = decodedData['data']['wordID'];
+
+        await addUserWord(w, userID);
+      } else {
+        debugPrint("Lỗi khi check từ: ${checkResponse.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("Lỗi addWordToLibrary: $e");
+      throw Exception("Có lỗi xảy ra khi thêm từ: $e");
+    }
+  }
+}
