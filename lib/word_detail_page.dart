@@ -1,25 +1,122 @@
 import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
-import 'package:ai_english_application/classes/self-defined_classes.dart';
-import 'data/notifier.dart';
-import 'constants.dart';
-import 'dataImport/api_services.dart'; // Thay bằng path thực tế của bạn
-import 'dataImport/pronunciation.dart';
+// Các import của bạn (nhớ kiểm tra lại đường dẫn cho chuẩn)
+import 'service/pronunciation.dart';
+import 'shared_widgets/constants.dart';
+import 'models/word/Word.dart';
 import 'scan_object_page.dart';
-import 'my_library_page.dart';
+import '/service/ImageService.dart'; // File ImageService bạn vừa tạo
+import '/service/WordService.dart'; // File WordService của bạn
+import 'state/global_state.dart'; // Import global state để lấy thông tin người dùng
+import 'my_library_page.dart'; // Trang thư viện của tôi
+import 'shared_widgets/shared_endDrawer.dart'; // Import Drawer tùy chỉnh
+import 'shared_widgets/shared_appbar.dart';
 
-class WordDetailPage extends StatelessWidget {
+class WordDetailPage extends StatefulWidget {
   final Word word;
   final Uint8List? imageData; // Dữ liệu ảnh đã được cắt và mã hóa
+
   const WordDetailPage({super.key, required this.word, this.imageData});
+
+  @override
+  State<WordDetailPage> createState() => _WordDetailPageState();
+}
+
+class _WordDetailPageState extends State<WordDetailPage> {
+  // Biến quản lý trạng thái loading khi đang upload
+  bool _isLoading = false;
+
+  // Khởi tạo các Service
+  final ImageService _imageService = ImageService();
+  final WordService _wordService = WordService(); // Giả định tên class của bạn
+
+  // --------------------------------------------------------
+  // HÀM XỬ LÝ LƯU TỪ VÀO THƯ VIỆN
+  // --------------------------------------------------------
+  Future<void> _saveWordToLibrary() async {
+    if (_isLoading) return; // Chặn bấm nhiều lần
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      String? finalImageUrl;
+
+      // 1. NẾU CÓ ẢNH -> UPLOAD LÊN AZURE TRƯỚC
+      if (widget.imageData != null) {
+        debugPrint("Đang tạo file tạm từ imageData...");
+        // Tạo một file tạm trên thiết bị để chứa Uint8List
+        final tempDir = await getTemporaryDirectory();
+        File tempFile = await File(
+          '${tempDir.path}/temp_word_image_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        ).create();
+        tempFile.writeAsBytesSync(widget.imageData!);
+
+        debugPrint("Đang upload ảnh lên Azure...");
+        // Gọi ImageService up lên thư mục 'wordImage'
+        finalImageUrl = await _imageService.uploadImageToAzure(
+          tempFile,
+          "wordImage",
+        );
+
+        debugPrint("Link ảnh trả về: $finalImageUrl");
+      }
+
+      // 2. CẬP NHẬT LINK ẢNH VÀO OBJECT WORD
+      Word wordToSave = widget.word;
+      if (finalImageUrl != null) {
+        // Giả sử class Word của bạn có thuộc tính imageUrl
+        // Nếu không có, bạn cần thêm thuộc tính này vào model Word nhé!
+        wordToSave.photoUrl = finalImageUrl;
+      }
+
+      // 3. GỌI WORDSERVICE ĐỂ LƯU VÀO DATABASE
+      debugPrint("Đang lưu thông tin từ vựng vào Database...");
+      // Giả sử bạn truyền object wordToSave vào hàm của WordService
+      await _wordService.addWordToLibrary(
+        wordToSave,
+        currentStudentNotifier.value!.userID,
+      ); // Lấy userID từ global state
+
+      debugPrint("✅ Lưu thành công!");
+
+      // 4. CHUYỂN TRANG SAU KHI THÀNH CÔNG
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã lưu từ vựng thành công!')),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MyLibraryPage()),
+        );
+      }
+    } catch (e) {
+      debugPrint("❌ Lỗi khi lưu từ: $e");
+      debugPrint("${currentStudentNotifier.value?.username}");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Đã xảy ra lỗi: $e')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildHeader(context),
+      appBar: const CustomAppBar(showBackButton: false),
+      endDrawer: const CustomEndDrawer(),
       body: Container(
         width: double.infinity,
         decoration: backgroundDecoration,
@@ -62,7 +159,7 @@ class WordDetailPage extends StatelessWidget {
                     // Cột TỪ
                     _buildTableColumn(
                       Text(
-                        word.term,
+                        widget.word.term,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -72,7 +169,7 @@ class WordDetailPage extends StatelessWidget {
                     // Cột ĐỊNH NGHĨA
                     _buildTableColumn(
                       Text(
-                        word.definition,
+                        widget.word.definition,
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.white),
                       ),
@@ -86,17 +183,16 @@ class WordDetailPage extends StatelessWidget {
                           size: 35,
                         ),
                         onPressed: () {
-                          // Gọi hàm phát âm ở đây (ví dụ: flutter_tts)
-                          TTSService.speak(word.term);
+                          TTSService.speak(widget.word.term);
                         },
                       ),
                     ),
                     // Cột HÌNH ẢNH
                     _buildTableColumn(
-                      (imageData != null)
+                      (widget.imageData != null)
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(imageData!),
+                              child: Image.memory(widget.imageData!),
                             )
                           : const Icon(
                               Icons.image_not_supported,
@@ -130,20 +226,40 @@ class WordDetailPage extends StatelessWidget {
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       children: [
-        _bottomButton("Lưu từ vào thư viện của tôi", colorOrange, () async {
-          // Gọi hàm addWord từ file DB của bạn
-
-          await ApiService.addWordToLibrary(word, userID.value);
-          debugPrint("API xong, chuẩn bị chuyển trang...");
-          if (context.mounted) {
-            Navigator.pushReplacement(
-              context,
-              // Truyền dữ liệu ảnh vào trang quét
-              MaterialPageRoute(builder: (context) => const MyLibraryPage()),
-            );
-          }
-        }),
+        // Nút Lưu từ (Tích hợp hiệu ứng Loading)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: ElevatedButton(
+            onPressed: _isLoading
+                ? null
+                : _saveWordToLibrary, // Khóa nút khi đang tải
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorOrange,
+              disabledBackgroundColor: Colors.grey, // Màu khi bị khóa
+              minimumSize: const Size(double.infinity, 60),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 25,
+                    width: 25,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
+                  )
+                : const Text(
+                    "Lưu từ vào thư viện của tôi",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+          ),
+        ),
         const SizedBox(height: 15),
+
+        // Nút Loại bỏ
         _bottomButton("Loại bỏ và quét vật thể mới", colorOrange, () {
           // Quay lại trang quét mà không lưu
           Navigator.pushReplacement(

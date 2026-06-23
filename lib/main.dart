@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_page.dart'; // Import trang đăng nhập để làm trang chủ
-// Import lớp kết nối SQL để khởi tạo ngay khi app chạy
+import 'login_page.dart';
 
 void main() {
   runApp(const MyApp());

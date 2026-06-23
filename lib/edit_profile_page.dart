@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'constants.dart';
+import '../raw/constants.dart';
 
 class EditProfilePage extends StatelessWidget {
   const EditProfilePage({super.key});

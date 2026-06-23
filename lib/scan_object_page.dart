@@ -1,15 +1,17 @@
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
-import 'package:ai_english_application/dataImport/Translate.dart';
+import '/service/Translate.dart';
 import 'package:flutter/material.dart';
 import 'package:ultralytics_yolo/models/yolo_result.dart';
 import 'package:ultralytics_yolo/models/yolo_task.dart';
 import 'package:ultralytics_yolo/ultralytics_yolo.dart';
 import 'package:ultralytics_yolo/widgets/yolo_controller.dart';
 import 'package:ultralytics_yolo/yolo_view.dart';
-import 'constants.dart';
-import 'classes/self-defined_classes.dart';
+import 'shared_widgets/constants.dart';
+import 'models/word/Word.dart';
 import 'word_detail_page.dart'; // Import trang chi tiết từ vựng
+import 'shared_widgets/shared_endDrawer.dart'; // Import Drawer tùy chỉnh
+import 'shared_widgets/shared_appbar.dart';
 
 class ScanObjectPage extends StatefulWidget {
   const ScanObjectPage({super.key});
@@ -36,26 +38,8 @@ class _ScanObjectPageState extends State<ScanObjectPage> {
     final double viewHeight = viewWidth * (4 / 3);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: colorTeal,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Row(
-          children: const [
-            Icon(Icons.local_fire_department, color: Colors.orange, size: 28),
-            SizedBox(width: 5),
-            Text("5", style: TextStyle(color: Colors.white, fontSize: 18)),
-            Spacer(),
-            Icon(Icons.notifications, color: colorOrange, size: 30),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu, color: colorOrange, size: 35),
-            onPressed: () => Scaffold.of(context).openEndDrawer(),
-          ),
-        ],
-      ),
+      appBar: const CustomAppBar(showBackButton: false),
+      endDrawer: const CustomEndDrawer(),
       body: Center(
         child: SizedBox(
           width: viewWidth,
@@ -147,6 +131,8 @@ class _ScanObjectPageState extends State<ScanObjectPage> {
     Word w = Word(
       term: obj.className,
       definition: await TranslationService.translateEnToVi(obj.className),
+      lastReview: DateTime.now(),
+      nextReview: DateTime.now().add(const Duration(days: 1)),
     );
     if (!mounted) return;
     Navigator.pushReplacement(
