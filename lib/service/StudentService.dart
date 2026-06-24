@@ -9,6 +9,7 @@ import 'BaseApi.dart';
 /// Lấy thông tin cá nhân của một Student
 
 class StudentService {
+  
   // Dùng chung AppConfig hoặc baseUrl giống WordService
   static const String baseUrl = BaseApi.url;
 
@@ -84,7 +85,37 @@ class StudentService {
       return null;
     }
   }
+/// Tìm kiếm người dùng bằng Username
+  static Future<Student?> searchByUsername(String username) async {
+    final url = Uri.parse('$baseUrl/api/user/search?username=$username');
 
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['user'] != null) {
+          final userData = data['user'];
+          return Student(
+            userID: userData['userID'],
+            username: userData['username'],
+            fullName: userData['fullName'] ?? 'Người dùng ẩn danh',
+            weeklyExp: userData['weeklyExp'] ?? 0,
+            totalExp: userData['totalExp'] ?? 0,
+            streak: userData['streak'] ?? 0,
+            avatarUrl: userData['avatarUrl']?.toString(),
+          );
+        }
+      }
+      return null; // Trả về null nếu không tìm thấy
+    } catch (e) {
+      debugPrint("❌ Lỗi mạng tại searchByUsername: $e");
+      return null;
+    }
+  }
   // 2. LẤY DANH SÁCH BẠN BÈ (Friends)
   static Future<List<Student>> getFriends(int userID) async {
     final url = Uri.parse('$baseUrl/api/relationship/friend/$userID');
