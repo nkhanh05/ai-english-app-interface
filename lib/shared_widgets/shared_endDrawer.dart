@@ -84,8 +84,8 @@ class CustomEndDrawer extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => PersonalProfilePage(
-                    student: currentStudentNotifier
-                        .value!, // (2) Bỏ const, thêm "student:"
+                    student: currentStudentNotifier.value!,// (2) Bỏ const, thêm "student:"
+                    isMe:true, // (3) Thêm isMe:true để biết đây là trang cá nhân của chính mình                  
                   ),
                 ),
               );
