@@ -1,20 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
-
+import 'BaseApi.dart';
 // Đảm bảo đường dẫn import phù hợp với cấu trúc thư mục của bạn
 import '../models/word/Word.dart';
 import '../models/exercise/Exercise.dart';
 
 class ExerciseService {
-  static const String baseUrl =
-      'https://ai-english-app-fjdhdhe0bzh0faht.eastasia-01.azurewebsites.net/api/exercise';
-
+  static String baseUrl = BaseApi.url;
   // ====================================================================
   // 1. LẤY DANH SÁCH TỪ VỰNG CẦN ÔN TẬP DỰA TRÊN THUẬT TOÁN SM-2
   // ====================================================================
   static Future<List<Word>> getWordsToRevise(int userID) async {
-    final url = Uri.parse('$baseUrl/revise/$userID');
+    final url = Uri.parse('$baseUrl/api/exercise/revise/$userID');
 
     try {
       final response = await http.get(
@@ -68,7 +66,7 @@ class ExerciseService {
   // 2. LƯU KẾT QUẢ BÀI TẬP VÀ CẬP NHẬT THÔNG SỐ SM-2 LÊN SERVER
   // ====================================================================
   static Future<bool> saveExerciseResult(Exercise exercise, int userID) async {
-    final url = Uri.parse('$baseUrl/saveResult');
+    final url = Uri.parse('$baseUrl/api/exercise/saveResult');
 
     try {
       // Chuẩn bị danh sách payload cho từng từ vựng đã được làm

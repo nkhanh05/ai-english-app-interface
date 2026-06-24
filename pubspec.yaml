@@ -20,6 +20,7 @@ dependencies:
   mssql_connection: ^3.0.0
   path_provider: ^2.1.5
   sql_conn: ^2.0.0
+  supabase_flutter: ^2.15.0
   tflite_flutter: ^0.12.1
   ultralytics_yolo: ^0.3.0
 

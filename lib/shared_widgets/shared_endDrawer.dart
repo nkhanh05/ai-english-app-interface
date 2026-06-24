@@ -4,6 +4,8 @@ import '../scan_object_page.dart';
 import '../my_library_page.dart';
 import '../leaderboard_page.dart';
 import '../exercise_menu_page.dart';
+import '../personal_profile.dart';
+import '/state/global_state.dart';
 
 class CustomEndDrawer extends StatelessWidget {
   const CustomEndDrawer({super.key});
@@ -67,6 +69,24 @@ class CustomEndDrawer extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const ExerciseMenuPage(),
+                ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.account_circle),
+            title: const Text(
+              'Trang cá nhân',
+            ), // (1) Đổi tên lại cho khớp logic UX
+            onTap: () {
+              Navigator.pop(context); // Đóng Drawer (nếu đang ở trong Drawer)
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PersonalProfilePage(
+                    student: currentStudentNotifier
+                        .value!, // (2) Bỏ const, thêm "student:"
+                  ),
                 ),
               );
             },

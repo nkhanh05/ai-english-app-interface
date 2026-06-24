@@ -3,17 +3,15 @@ import 'package:http/http.dart' as http;
 import '/models/user/User.dart';
 import '/models/user/Student.dart'; // Thêm import này
 import '/models/user/Admin.dart'; // Thêm import này
-
-class AppConfig {
-  static const String baseUrl =
-      'https://ai-english-app-fjdhdhe0bzh0faht.eastasia-01.azurewebsites.net';
-}
+import 'BaseApi.dart';
 
 class UserService {
   /// Xử lý Đăng nhập
+  String baseUrl = BaseApi.url;
+
   /// Trả về đối tượng Student hoặc Admin (đều kế thừa từ User)
   Future<User?> checkLogin(String username, String password) async {
-    final url = Uri.parse('${AppConfig.baseUrl}/api/user/signin');
+    final url = Uri.parse('${baseUrl}/api/user/signin');
 
     try {
       final response = await http.post(
@@ -45,6 +43,7 @@ class UserService {
             totalExp: userData['totalExp'] ?? 0,
             streak: userData['streak'] ?? 0,
             isStreakMaintained: userData['isStreakMaintained'] ?? false,
+            avatarUrl: userData['avatarUrl'] ?? '',
           );
         } else {
           // Đề phòng trường hợp lỗi data role không khớp
@@ -75,7 +74,7 @@ class UserService {
     String email,
     String fullName,
   ) async {
-    final url = Uri.parse('${AppConfig.baseUrl}/api/user/signup');
+    final url = Uri.parse('${baseUrl}/api/user/signup');
 
     try {
       final response = await http.post(
@@ -86,6 +85,7 @@ class UserService {
           'password': password,
           'email': email,
           'fullName': fullName,
+          'status': "Inactive",
         }),
       );
 
