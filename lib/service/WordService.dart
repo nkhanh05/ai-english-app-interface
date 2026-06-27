@@ -8,8 +8,6 @@ import '/models/word/Word.dart';
 import 'BaseApi.dart';
 
 class WordService {
-  // Thêm 2 hàm này vào bên trong class WordService của bạn
-
   Future<bool> deleteWord(int userID, int wordID) async {
     final url = Uri.parse('$baseUrl/api/word/deleteWord');
     try {

@@ -6,6 +6,7 @@ import '../leaderboard_page.dart';
 import '../exercise_menu_page.dart';
 import '../personal_profile.dart';
 import '/state/global_state.dart';
+import '../login_page.dart';
 
 class CustomEndDrawer extends StatelessWidget {
   const CustomEndDrawer({super.key});
@@ -84,10 +85,23 @@ class CustomEndDrawer extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => PersonalProfilePage(
-                    student: currentStudentNotifier.value!,// (2) Bỏ const, thêm "student:"
-                    isMe:true, // (3) Thêm isMe:true để biết đây là trang cá nhân của chính mình                  
+                    student: currentStudentNotifier
+                        .value!, // (2) Bỏ const, thêm "student:"
+                    isMe:
+                        true, // (3) Thêm isMe:true để biết đây là trang cá nhân của chính mình
                   ),
                 ),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Đăng xuất'), // (1) Đổi tên lại cho khớp logic UX
+            onTap: () {
+              Navigator.pop(context); // Đóng Drawer (nếu đang ở trong Drawer)
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
               );
             },
           ),

@@ -4,11 +4,11 @@ class StreakBadge extends Badge {
   final int streakCount;
 
   StreakBadge({
+    this.streakCount = 0,
     required super.badgeName,
     required super.description,
     super.category = '',
     required super.type,
-    required this.streakCount,
     super.badgeID = 0,
   });
 
